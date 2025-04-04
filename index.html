@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat vs Dog Classifier</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Using TensorFlow.js and MobileNet for reliable classification -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.15.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cat vs Dog <span>AI Classifier</span></h1>
+            <p>Upload an image to see if it's a cat or a dog!</p>
+        </header>
+        
+        <main>
+            <div class="upload-container">
+                <div class="upload-area" id="drop-area">
+                    <p>Drag & drop an image here or</p>
+                    <label for="file-input" class="upload-button">Choose File</label>
+                    <input type="file" id="file-input" accept="image/*" hidden>
+                    <p class="small">Supported formats: JPG, PNG, GIF</p>
+                </div>
+                <div class="preview-container">
+                    <img id="preview-image" src="" alt="Preview" style="display: none;">
+                </div>
+            </div>
+            
+            <div class="result-container" id="result-container" style="display: none;">
+                <h2>Analysis Result</h2>
+                <div class="result-card">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress cat-progress" id="cat-progress"></div>
+                        </div>
+                        <div class="label">Cat: <span id="cat-probability">0%</span></div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress dog-progress" id="dog-progress"></div>
+                        </div>
+                        <div class="label">Dog: <span id="dog-probability">0%</span></div>
+                    </div>
+                    <div class="prediction" id="prediction"></div>
+                    <div class="breed-info" id="breed-info">Possible breed: <span id="breed-name">Unknown</span></div>
+                </div>
+                <button class="reset-button" id="reset-button">Analyze Another Image</button>
+            </div>
+            
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing image...</p>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Created with TensorFlow.js | <a href="https://github.com/tensorflow/tfjs-models/tree/master/mobilenet" target="_blank">MobileNet Model</a></p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
