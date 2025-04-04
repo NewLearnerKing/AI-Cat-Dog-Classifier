@@ -1,66 +1,481 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cat vs Dog Classifier</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Using TensorFlow.js and MobileNet for reliable classification -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#1a1a1a',
+                            card: '#2d2d2d',
+                            text: '#e5e5e5',
+                            border: '#404040',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.15.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* Enhanced animations */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 rgba(59, 130, 246, 0); }
+            50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+        
+        @keyframes slide-in-right {
+            0% { transform: translateX(100px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        .slide-in-right {
+            animation: slide-in-right 0.6s ease-out forwards;
+        }
+        
+        @keyframes grow-in {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .grow-in {
+            animation: grow-in 0.5s ease-out forwards;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        .shimmer {
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite linear;
+        }
+
+        /* Theme transition */
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        .theme-transition {
+            transition: all 0.3s ease;
+        }
+
+        .model-card {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .model-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .model-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(74, 107, 223, 0.1), rgba(139, 92, 246, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .model-card:hover::before {
+            opacity: 1;
+        }
+
+        .breed-info-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+        }
+        
+        .breed-info-card:hover {
+            transform: scale(1.01);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark .breed-info-card {
+            background: linear-gradient(135deg, rgba(0,0,0,0.1), rgba(0,0,0,0.05));
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Progress Bar Animation */
+        @keyframes progress-fill {
+            0% { width: 0%; }
+        }
+        
+        .progress-animate {
+            animation: progress-fill 1.5s ease-out forwards;
+        }
+        
+        /* Enhanced Cards */
+        .card-hover-effect {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover-effect:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Enhanced breed details sections */
+        .breed-section {
+            border-left: 3px solid transparent;
+            padding-left: 15px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .breed-section:hover {
+            border-left-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .dark .breed-section:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Drag and drop styling */
+        #drop-area.dragging {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .dark #drop-area.dragging {
+            background-color: rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Cat vs Dog <span>AI Classifier</span></h1>
-            <p>Upload an image to see if it's a cat or a dog!</p>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-dark-bg dark:to-gray-800 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Theme Switcher -->
+        <div class="absolute top-4 right-4 flex items-center gap-2">
+            <span id="theme-indicator" class="text-sm font-medium text-gray-600 dark:text-gray-300 theme-transition">
+                Light Mode
+            </span>
+            <button id="theme-toggle" class="p-2 rounded-lg bg-white dark:bg-dark-card shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                <svg class="w-6 h-6 text-gray-800 dark:text-yellow-400 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <svg class="w-6 h-6 text-gray-800 dark:text-gray-200 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <header class="text-center mb-12 animate__animated animate__fadeIn">
+            <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+                Pet Vision <span class="text-pink-500 dark:text-pink-400">Dashboard</span>
+            </h1>
+            <p class="text-xl text-gray-600 dark:text-gray-300">Advanced Cat & Dog Breed Analysis</p>
         </header>
-        
-        <main>
-            <div class="upload-container">
-                <div class="upload-area" id="drop-area">
-                    <p>Drag & drop an image here or</p>
-                    <label for="file-input" class="upload-button">Choose File</label>
-                    <input type="file" id="file-input" accept="image/*" hidden>
-                    <p class="small">Supported formats: JPG, PNG, GIF</p>
+
+        <!-- Dashboard Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
+            <!-- Left Column - Upload and Classification -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Upload Widget -->
+                <div class="bg-white dark:bg-dark-card rounded-xl shadow-lg p-6 animate__animated animate__fadeInUp hover:shadow-xl transition-all duration-300">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                        <i class="fas fa-upload mr-2"></i> Image Upload
+                    </h2>
+                    <div class="upload-area border-2 border-dashed border-gray-300 dark:border-dark-border rounded-lg p-6 text-center transition-all duration-300 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30" id="drop-area">
+                        <div class="animate-float mb-4">
+                            <svg class="w-12 h-12 mx-auto text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">Drag & drop an image here or</p>
+                        <label for="file-input" class="inline-block bg-blue-500 dark:bg-blue-600 text-white px-6 py-2 rounded-lg cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors duration-300">
+                            Choose File
+                        </label>
+                        <input type="file" id="file-input" accept="image/*" class="hidden">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">Supported formats: JPG, PNG, GIF</p>
+                    </div>
+                    <div class="preview-container mt-6">
+                        <img id="preview-image" src="" alt="Preview" class="max-w-full rounded-lg shadow-md hidden">
+                    </div>
                 </div>
-                <div class="preview-container">
-                    <img id="preview-image" src="" alt="Preview" style="display: none;">
+
+                <!-- Classification Results -->
+                <div class="result-container bg-white dark:bg-dark-card rounded-xl shadow-lg p-6 card-hover-effect hidden" id="result-container">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                        <i class="fas fa-chart-pie mr-2"></i> Classification
+                    </h2>
+                    <div class="loading-animation hidden" id="loading">
+                        <div class="flex justify-center mb-4">
+                            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                        <p class="text-center text-gray-600 dark:text-gray-300">Analyzing image...</p>
+                    </div>
+                    <div class="progress-container mb-6">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-medium text-gray-700 dark:text-gray-300">Cat</span>
+                            <span class="font-medium text-gray-700 dark:text-gray-300" id="cat-probability">0%</span>
+                        </div>
+                        <div class="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-500 rounded-full" id="cat-progress" style="width: 0%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between mb-2 mt-4">
+                            <span class="font-medium text-gray-700 dark:text-gray-300">Dog</span>
+                            <span class="font-medium text-gray-700 dark:text-gray-300" id="dog-probability">0%</span>
+                        </div>
+                        <div class="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-purple-500 rounded-full" id="dog-progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="text-center mb-4 p-3 rounded-lg slide-in-right bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200" id="prediction">Prediction: </h3>
+                        <p class="text-base text-gray-600 dark:text-gray-400" id="breed-name">Breed: </p>
+                    </div>
+                    <button id="reset-button" class="w-full mt-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-300">
+                        <i class="fas fa-redo mr-2"></i> Analyze Another Image
+                    </button>
+                </div>
+                
+                <!-- Model Visualization -->
+               
+            </div>
+
+            <!-- Middle Column - Breed Metrics and Visualization -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Breed Info Card -->
+                <div class="bg-white dark:bg-dark-card rounded-xl shadow-lg p-6 card-hover-effect hidden" id="breed-info">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                        <i class="fas fa-paw mr-2"></i> <span id="breed-title">Breed Information</span>
+                    </h2>
+                    <div class="breed-info-card p-4 rounded-xl" id="breed-info-content">
+                        <div id="breed-details">
+                            <!-- Breed details will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Breed Metrics -->
+                <div class="bg-white dark:bg-dark-card rounded-xl shadow-lg p-6 card-hover-effect hidden" id="breed-metrics">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                        <i class="fas fa-chart-bar mr-2"></i> Breed Metrics
+                    </h2>
+                    <div class="metrics-container">
+                        <!-- Metrics Chart -->
+                        <canvas id="metricsChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Map and Model Info -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Geographical Distribution -->
+                <div class="bg-white dark:bg-dark-card rounded-xl shadow-lg p-6 card-hover-effect hidden" id="breed-map">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                        <i class="fas fa-globe-americas mr-2"></i> Geographical Distribution
+                    </h2>
+                    <div id="map-container" class="w-full h-64 rounded-lg overflow-hidden"></div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center" id="map-description">Showing regions where this breed is common</p>
+                </div>
+                
+                <!-- Classification Details -->
+                <div class="bg-white dark:bg-dark-card rounded-xl shadow-lg p-6 card-hover-effect hidden" id="classification-details">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                        <i class="fas fa-brain mr-2"></i> Classification Details
+                    </h2>
+                    <div class="classification-container">
+                        <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">Top Predictions</h3>
+                            <div id="top-predictions" class="space-y-2">
+                                <!-- Will be populated dynamically -->
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700 dark:text-gray-300">Loading predictions...</span>
+                                    <span class="text-gray-500 dark:text-gray-400">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">Model Confidence</h3>
+                            <div class="relative pt-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700 dark:text-gray-300">Overall Confidence</span>
+                                    <span id="overall-confidence" class="text-gray-700 dark:text-gray-300">0%</span>
+                                </div>
+                                <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200 dark:bg-gray-700 mt-1">
+                                    <div id="confidence-bar" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 to-purple-500" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">Key Features</h3>
+                            <ul id="key-features" class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+                                <!-- Will be populated dynamically -->
+                                <li>Analyzing image features...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Details Section -->
+        <section class="mb-16 bg-white dark:bg-dark-card rounded-xl shadow-lg p-8">
+            <h2 class="text-3xl font-bold text-center mb-8 text-blue-600 dark:text-blue-400">How the Classification Works</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 text-center model-card">
+                    <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707-.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-blue-600 dark:text-blue-400">1. Feature Extraction</h3>
+                    <p class="text-gray-700 dark:text-gray-300">MobileNet extracts visual features like edges, textures, and shapes from the image. These low-level features combine to form complex patterns.</p>
+                </div>
+                
+                <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 text-center model-card">
+                    <div class="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-purple-600 dark:text-purple-400">2. Classification</h3>
+                    <p class="text-gray-700 dark:text-gray-300">The model compares extracted features against patterns it learned from thousands of pet images to determine whether it's a cat or dog.</p>
+                </div>
+                
+                <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 text-center model-card">
+                    <div class="w-16 h-16 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-pink-600 dark:text-pink-400">3. Breed Analysis</h3>
+                    <p class="text-gray-700 dark:text-gray-300">Using specific breed-related features, the model identifies the likely breed and provides confidence scores for each category.</p>
                 </div>
             </div>
             
-            <div class="result-container" id="result-container" style="display: none;">
-                <h2>Analysis Result</h2>
-                <div class="result-card">
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress cat-progress" id="cat-progress"></div>
-                        </div>
-                        <div class="label">Cat: <span id="cat-probability">0%</span></div>
+            <div class="p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl">
+                <h3 class="text-xl font-bold mb-4 text-blue-600 dark:text-blue-400 text-center">MobileNet Architecture</h3>
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    <div class="md:w-1/2">
+                        <img src="cnn1.png" alt="MobileNet Architecture" class="w-full rounded-lg shadow-md">
                     </div>
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress dog-progress" id="dog-progress"></div>
-                        </div>
-                        <div class="label">Dog: <span id="dog-probability">0%</span></div>
+                    <div class="md:w-1/2">
+                        <ul class="space-y-2 text-gray-700 dark:text-gray-300">
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span><strong>Efficient Design:</strong> Optimized for mobile devices with reduced parameters</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span><strong>Depthwise Separable Convolutions:</strong> Split standard convolutions into depthwise and pointwise operations</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span><strong>Transfer Learning:</strong> Pre-trained on ImageNet dataset with 1.4 million images</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span><strong>Performance:</strong> Achieves high accuracy with reduced computational cost</span>
+                            </li>
+                        </ul>
                     </div>
-                    <div class="prediction" id="prediction"></div>
-                    <div class="breed-info" id="breed-info">Possible breed: <span id="breed-name">Unknown</span></div>
                 </div>
-                <button class="reset-button" id="reset-button">Analyze Another Image</button>
             </div>
-            
-            <div class="loading" id="loading" style="display: none;">
-                <div class="spinner"></div>
-                <p>Analyzing image...</p>
-            </div>
-        </main>
-        
-        <footer>
-            <p>Created with TensorFlow.js | <a href="https://github.com/tensorflow/tfjs-models/tree/master/mobilenet" target="_blank">MobileNet Model</a></p>
+        </section>
+
+        <footer class="text-center mt-12 text-gray-600 dark:text-gray-400">
+            <p>Created with TensorFlow.js and DeepSeek AI | <a href="https://github.com/tensorflow/tfjs-models/tree/master/mobilenet" target="_blank" class="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-300">MobileNet Model</a></p>
         </footer>
     </div>
     
+    <script>
+        // Theme switcher functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIndicator = document.getElementById('theme-indicator');
+        const html = document.documentElement;
+        
+        // Function to update theme indicator
+        function updateThemeIndicator(isDark) {
+            themeIndicator.textContent = isDark ? 'Dark Mode' : 'Light Mode';
+        }
+        
+        // Function to set theme
+        function setTheme(theme) {
+            html.classList.remove('light', 'dark');
+            html.classList.add(theme);
+            updateThemeIndicator(theme === 'dark');
+            localStorage.setItem('theme', theme);
+        }
+        
+        // Check for saved theme preference or use system preference
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else {
+            setTheme(systemPrefersDark ? 'dark' : 'light');
+        }
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (!localStorage.getItem('theme')) {
+                setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+        
+        // Theme toggle click handler
+        themeToggle.addEventListener('click', () => {
+            const isDark = html.classList.contains('dark');
+            setTheme(isDark ? 'light' : 'dark');
+        });
+
+
+       
+   
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
